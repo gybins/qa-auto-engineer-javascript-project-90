@@ -1,8 +1,12 @@
+install:
+	npm ci
+	npx playwright install
+
 dev:
 	npm run dev
 
-test:
-	npx playwright test
-
 lint:
 	npm run lint
+
+test:
+	npx playwright test

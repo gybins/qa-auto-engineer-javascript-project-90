@@ -18,57 +18,69 @@ test("check label create form", async ({ page }) => {
   await labelPage.openCreateForm();
 
   await expect(page).toHaveURL(/\/#\/labels\/create$/);
-
   await expect(labelPage.name).toBeVisible();
   await expect(labelPage.saveButton).toBeVisible();
 });
 
-test("create label", async ({ page }) => {
+test("create label", async ({ page }, testInfo) => {
   const labelPage = new LabelPage(page);
+
+  const name = `automation-${testInfo.project.name}-${Date.now()}`;
 
   await labelPage.goto();
   await labelPage.openCreateForm();
-
-  const name = "automation";
-
   await labelPage.createLabel(name);
 
   await expect(labelPage.successMessage).toBeVisible();
   await expect(labelPage.name).toHaveValue(name);
 });
 
-test("label list", async ({ page }) => {
+test("label list", async ({ page }, testInfo) => {
   const labelPage = new LabelPage(page);
+
+  const name = `list-${testInfo.project.name}-${Date.now()}`;
+
+  await labelPage.goto();
+  await labelPage.openCreateForm();
+  await labelPage.createLabel(name);
 
   await labelPage.goto();
 
   await expect(labelPage.nameHeader).toBeVisible();
 
-  const labelRow = labelPage.getLabelRow("bug");
+  const labelRow = labelPage.getLabelRow(name);
 
   await expect(labelRow).toBeVisible();
-  await expect(labelRow).toContainText("bug");
+  await expect(labelRow).toContainText(name);
 });
 
-test("open edit label form", async ({ page }) => {
+test("open edit label form", async ({ page }, testInfo) => {
   const labelPage = new LabelPage(page);
 
-  await labelPage.goto();
+  const name = `edit-form-${testInfo.project.name}-${Date.now()}`;
 
-  await labelPage.openLabel("bug");
+  await labelPage.goto();
+  await labelPage.openCreateForm();
+  await labelPage.createLabel(name);
+
+  await labelPage.goto();
+  await labelPage.openLabel(name);
 
   await expect(labelPage.name).toBeVisible();
-  await expect(labelPage.name).toHaveValue("bug");
+  await expect(labelPage.name).toHaveValue(name);
 });
 
-test("edit label", async ({ page }) => {
+test("edit label", async ({ page }, testInfo) => {
   const labelPage = new LabelPage(page);
 
+  const oldName = `before-edit-${testInfo.project.name}-${Date.now()}`;
+  const newName = `after-edit-${testInfo.project.name}-${Date.now()}`;
+
   await labelPage.goto();
+  await labelPage.openCreateForm();
+  await labelPage.createLabel(oldName);
 
-  const oldName = "bug";
-  const newName = "bug updated";
-
+  await labelPage.goto();
   await labelPage.openLabel(oldName);
 
   await labelPage.name.fill(newName);
@@ -81,37 +93,51 @@ test("edit label", async ({ page }) => {
 
   await expect(labelRow).toBeVisible();
   await expect(labelRow).toContainText(newName);
- 
+  await expect(labelPage.getLabelRow(oldName)).toHaveCount(0);
 });
 
-test("delete label", async ({ page }) => {
+test("delete label", async ({ page }, testInfo) => {
   const labelPage = new LabelPage(page);
+
+  const name = `delete-${testInfo.project.name}-${Date.now()}`;
+
+  await labelPage.goto();
+  await labelPage.openCreateForm();
+  await labelPage.createLabel(name);
 
   await labelPage.goto();
 
-  const labelName = "bug";
-
-  await labelPage.getLabelCheckbox(labelName).check();
+  await labelPage.getLabelCheckbox(name).check();
   await labelPage.deleteButton.click();
 
   await expect(labelPage.deleteMessage).toBeVisible();
-
-  await expect(
-    labelPage.getLabelRow(labelName)
-  ).toHaveCount(0);
+  await expect(labelPage.getLabelRow(name)).toHaveCount(0);
 });
 
-test("delete all labels", async ({ page }) => {
+test("delete several labels", async ({ page }, testInfo) => {
   const labelPage = new LabelPage(page);
+
+  const timestamp = Date.now();
+  const firstLabel = `bulk-1-${testInfo.project.name}-${timestamp}`;
+  const secondLabel = `bulk-2-${testInfo.project.name}-${timestamp}`;
+
+  await labelPage.goto();
+  await labelPage.openCreateForm();
+  await labelPage.createLabel(firstLabel);
+
+  await labelPage.goto();
+  await labelPage.openCreateForm();
+  await labelPage.createLabel(secondLabel);
 
   await labelPage.goto();
 
-  await labelPage.selectAllCheckbox.check();
-
-  await expect(labelPage.selectAllCheckbox).toBeChecked();
+  await labelPage.getLabelCheckbox(firstLabel).check();
+  await labelPage.getLabelCheckbox(secondLabel).check();
 
   await labelPage.deleteButton.click();
 
   await expect(labelPage.bulkDeleteMessage).toBeVisible();
-  await expect(labelPage.emptyLabelsMessage).toBeVisible();
+
+  await expect(labelPage.getLabelRow(firstLabel)).toHaveCount(0);
+  await expect(labelPage.getLabelRow(secondLabel)).toHaveCount(0);
 });

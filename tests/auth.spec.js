@@ -10,20 +10,23 @@ test("Successful login", async ({ page }) => {
   const password = "password";
 
   await loginPage.login(username, password);
+
   await expect(loginPage.avatar).toBeVisible();
 });
 
 test("Successful logout", async ({ page }) => {
-  const logoutPage = new LoginPage(page);
+  const loginPage = new LoginPage(page);
 
-  await logoutPage.goto();
+  await loginPage.goto();
 
   const username = "user";
   const password = "password";
 
-  await logoutPage.login(username, password);
-  await expect(logoutPage.avatar).toBeVisible();
+  await loginPage.login(username, password);
 
-  await logoutPage.logout();
-  await expect(logoutPage.button).toBeVisible();
+  await expect(loginPage.avatar).toBeVisible();
+
+  await loginPage.logout();
+
+  await expect(loginPage.button).toBeVisible();
 });

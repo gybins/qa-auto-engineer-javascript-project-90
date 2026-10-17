@@ -23,22 +23,11 @@ export default class TaskPage {
       name: "Save",
     });
 
-    this.successMessage = page.getByText("Element created");
-
-    this.assigneeFilter = page.getByRole("combobox", {
-      name: /Assignee/i,
-    });
-
-    this.statusFilter = page.getByRole("combobox", {
-      name: /Status/i,
-    });
-
-    this.labelFilter = page.getByRole("combobox", {
-      name: /Label/i,
-    });
     this.deleteButton = page.getByRole("button", {
       name: /Delete/i,
     });
+
+    this.successMessage = page.getByText("Element created");
   }
 
   async goto() {
@@ -68,35 +57,46 @@ export default class TaskPage {
   }
 
   getTaskEditButton(taskId) {
-    return this.page.locator(`a[href="#/tasks/${taskId}"]`);
+    return this.page.locator(
+      `a[aria-label="Edit"][href="#/tasks/${taskId}"]`
+    );
   }
 
   async openTaskEdit(taskId) {
     await this.getTaskEditButton(taskId).click();
   }
 
+  getCurrentTaskId() {
+    const match = this.page.url().match(/#\/tasks\/(\d+)/);
+
+    return match ? match[1] : null;
+  }
+
   async filterByAssignee(assignee) {
-    await this.assigneeFilter.click();
+    await this.assignee.click();
     await this.page.getByRole("option", { name: assignee }).click();
   }
 
   async filterByStatus(status) {
-    await this.statusFilter.click();
+    await this.status.click();
     await this.page.getByRole("option", { name: status }).click();
   }
 
   async filterByLabel(label) {
-    await this.labelFilter.click();
+    await this.label.click();
     await this.page.getByRole("option", { name: label }).click();
+
     await this.page.keyboard.press("Escape");
   }
 
   getTaskCard(title) {
-    return this.page.getByText(title, { exact: true });
+    return this.page.getByText(title, {
+      exact: true,
+    });
   }
 
   async moveTask(title, targetStatus) {
-    const task = this.page.getByText(title, { exact: true });
+    const task = this.getTaskCard(title);
 
     const targetColumn = this.page.getByText(targetStatus, {
       exact: true,

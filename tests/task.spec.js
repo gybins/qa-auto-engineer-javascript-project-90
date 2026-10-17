@@ -27,41 +27,75 @@ test("check task create form", async ({ page }) => {
   await expect(taskPage.saveButton).toBeVisible();
 });
 
-test("create task", async ({ page }) => {
+test("create task", async ({ page }, testInfo) => {
   const taskPage = new TaskPage(page);
+
+  const title =
+    `create-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now()}`;
 
   await taskPage.goto();
   await taskPage.openCreateForm();
 
-  const assignee = "sarah@example.com";
-  const title = "Automation task";
-  const content = "Task created by Playwright";
-  const status = "To Review";
-  const label = "enhancement";
-
-  await taskPage.createTask(assignee, title, content, status, label);
+  await taskPage.createTask(
+    "sarah@example.com",
+    title,
+    "Task created by Playwright",
+    "To Review",
+    "enhancement"
+  );
 
   await expect(taskPage.successMessage).toBeVisible();
-
   await expect(taskPage.title).toHaveValue(title);
-  await expect(taskPage.content).toHaveValue(content);
+  await expect(taskPage.content).toHaveValue(
+    "Task created by Playwright"
+  );
 });
-test("task list", async ({ page }) => {
+
+test("task list", async ({ page }, testInfo) => {
   const taskPage = new TaskPage(page);
+
+  const title =
+    `list-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now()}`;
+
+  await taskPage.goto();
+  await taskPage.openCreateForm();
+
+  await taskPage.createTask(
+    "sarah@example.com",
+    title,
+    "Task list test",
+    "Draft",
+    "task"
+  );
 
   await taskPage.goto();
 
-  const taskCard = taskPage.getTaskCard("Task 15");
-
-  await expect(taskCard).toBeVisible();
+  await expect(taskPage.getTaskCard(title)).toBeVisible();
 });
 
-test("open edit task form", async ({ page }) => {
+test("open edit task form", async ({ page }, testInfo) => {
   const taskPage = new TaskPage(page);
 
-  await taskPage.goto();
+  const title =
+    `edit-form-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now()}`;
 
-  await taskPage.openTaskEdit(15);
+  await taskPage.goto();
+  await taskPage.openCreateForm();
+
+  await taskPage.createTask(
+    "sarah@example.com",
+    title,
+    "Open edit form test",
+    "Draft",
+    "task"
+  );
+
+  const taskId = taskPage.getCurrentTaskId();
+
+  expect(taskId).not.toBeNull();
+
+  await taskPage.goto();
+  await taskPage.openTaskEdit(taskId);
 
   await expect(taskPage.assignee).toBeVisible();
   await expect(taskPage.title).toBeVisible();
@@ -70,69 +104,123 @@ test("open edit task form", async ({ page }) => {
   await expect(taskPage.label).toBeVisible();
 });
 
-test("edit task", async ({ page }) => {
+test("edit task", async ({ page }, testInfo) => {
   const taskPage = new TaskPage(page);
 
+  const timestamp = Date.now();
+
+  const oldTitle =
+    `before-edit-${testInfo.project.name}-${testInfo.workerIndex}-${timestamp}`;
+
+  const newTitle =
+    `after-edit-${testInfo.project.name}-${testInfo.workerIndex}-${timestamp}`;
+
   await taskPage.goto();
+  await taskPage.openCreateForm();
 
-  await taskPage.openTaskEdit(15);
+  await taskPage.createTask(
+    "sarah@example.com",
+    oldTitle,
+    "Before update",
+    "Draft",
+    "task"
+  );
 
-  const newTitle = "Task 15 updated";
-  const newContent = "Updated by Playwright";
+  const taskId = taskPage.getCurrentTaskId();
+
+  expect(taskId).not.toBeNull();
+
+  await taskPage.goto();
+  await taskPage.openTaskEdit(taskId);
 
   await taskPage.title.fill(newTitle);
-  await taskPage.content.fill(newContent);
+  await taskPage.content.fill("Updated by Playwright");
 
   await taskPage.saveButton.click();
 
   await expect(page).toHaveURL(/\/#\/tasks$/);
-
   await expect(page.getByText("Element updated")).toBeVisible();
 
   await expect(taskPage.getTaskCard(newTitle)).toBeVisible();
 });
 
-test("filter tasks by label", async ({ page }) => {
+test("filter tasks by label", async ({ page }, testInfo) => {
   const taskPage = new TaskPage(page);
 
-  await taskPage.goto();
-
-  await taskPage.filterByLabel("critical");
-
-  await expect(taskPage.getTaskCard("Task 15")).toBeVisible();
-});
-
-test("filter tasks by status", async ({ page }) => {
-  const taskPage = new TaskPage(page);
-
-  await taskPage.goto();
-
-  await taskPage.filterByStatus("Published");
-
-  await expect(
-    taskPage.getTaskCard("Task 15")
-  ).toBeVisible();
-});
-
-test("filter tasks by assignee", async ({ page }) => {
-  const taskPage = new TaskPage(page);
-
-  await taskPage.goto();
-
-  await taskPage.filterByAssignee("john@google.com");
-
-  await expect(
-    taskPage.getTaskCard("Task 15")
-  ).toBeVisible();
-});
-
-test("delete task", async ({ page }) => {
-  const taskPage = new TaskPage(page);
+  const title =
+    `label-filter-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now()}`;
 
   await taskPage.goto();
   await taskPage.openCreateForm();
 
-  const title = "Task for delete";
+  await taskPage.createTask(
+    "sarah@example.com",
+    title,
+    "Label filter test",
+    "Draft",
+    "critical"
+  );
+
+  await taskPage.goto();
+  await taskPage.filterByLabel("critical");
+
+  await expect(taskPage.getTaskCard(title)).toBeVisible();
+});
+
+test("filter tasks by status", async ({ page }, testInfo) => {
+  const taskPage = new TaskPage(page);
+
+  const title =
+    `status-filter-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now()}`;
+
+  await taskPage.goto();
+  await taskPage.openCreateForm();
+
+  await taskPage.createTask(
+    "sarah@example.com",
+    title,
+    "Status filter test",
+    "Published",
+    "task"
+  );
+
+  await taskPage.goto();
+  await taskPage.filterByStatus("Published");
+
+  await expect(taskPage.getTaskCard(title)).toBeVisible();
+});
+
+test("filter tasks by assignee", async ({ page }, testInfo) => {
+  const taskPage = new TaskPage(page);
+
+  const title =
+    `assignee-filter-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now()}`;
+
+  await taskPage.goto();
+  await taskPage.openCreateForm();
+
+  await taskPage.createTask(
+    "john@google.com",
+    title,
+    "Assignee filter test",
+    "Draft",
+    "task"
+  );
+
+  await taskPage.goto();
+  await taskPage.filterByAssignee("john@google.com");
+
+  await expect(taskPage.getTaskCard(title)).toBeVisible();
+});
+
+test("delete task", async ({ page }, testInfo) => {
+  const taskPage = new TaskPage(page);
+
+  const title =
+    `delete-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now()}`;
+
+  await taskPage.goto();
+  await taskPage.openCreateForm();
 
   await taskPage.createTask(
     "sarah@example.com",
@@ -147,19 +235,17 @@ test("delete task", async ({ page }) => {
   await taskPage.deleteButton.click();
 
   await expect(page.getByText("Element deleted")).toBeVisible();
-
-  await expect(
-    taskPage.getTaskCard(title)
-  ).not.toBeVisible();
+  await expect(taskPage.getTaskCard(title)).toHaveCount(0);
 });
 
-test("move task between columns", async ({ page }) => {
+test("move task between columns", async ({ page }, testInfo) => {
   const taskPage = new TaskPage(page);
+
+  const title =
+    `drag-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now()}`;
 
   await taskPage.goto();
   await taskPage.openCreateForm();
-
-  const title = "Task for drag";
 
   await taskPage.createTask(
     "sarah@example.com",
@@ -179,7 +265,5 @@ test("move task between columns", async ({ page }) => {
 
   await taskPage.filterByStatus("To Review");
 
-  await expect(
-    taskPage.getTaskCard(title)
-  ).toBeVisible();
+  await expect(taskPage.getTaskCard(title)).toBeVisible();
 });
